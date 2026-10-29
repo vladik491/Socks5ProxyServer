@@ -1,16 +1,49 @@
-﻿namespace Socks5ProxyServer.Core;
+﻿using System.Text.Json;
+
+namespace Socks5ProxyServer.Core;
 
 public class ServerConfiguration
 {
-    public int Port { get; init; } = 1080;
-    public int MaxConnectionsPerUser { get; init; } = 5;
-    public Dictionary<string, string> Users { get; } = new(StringComparer.OrdinalIgnoreCase);
+    private const string DefaultConfigPath = "users.json";
 
-    /// <summary>
-    /// Проверяет соответствие логина и пароля пользователя зарегистрированным учетным записям.
-    /// </summary>
+    public int Port { get; set; } = 1080;
+    public int MaxConnectionsPerUser { get; set; } = 3;
+    public Dictionary<string, string> Users { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+
     public bool ValidateCredentials(string username, string password)
     {
         return Users.TryGetValue(username, out var expectedPassword) && expectedPassword == password;
+    }
+
+    /// <summary>
+    /// Загружает настройки из файла users.json или создает файл по умолчанию, если он отсутствует.
+    /// </summary>
+    public static ServerConfiguration LoadOrCreateDefault(string filePath = DefaultConfigPath)
+    {
+        if (File.Exists(filePath))
+        {
+            string json = File.ReadAllText(filePath);
+            var config = JsonSerializer.Deserialize<ServerConfiguration>(json, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            if (config != null)
+            {
+                return config;
+            }
+        }
+
+        var defaultConfig = new ServerConfiguration();
+        defaultConfig.Users["alice"] = "secret123";
+        defaultConfig.Users["bob"] = "pass456";
+
+        string defaultJson = JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions
+        {
+            WriteIndented = true
+        });
+
+        File.WriteAllText(filePath, defaultJson);
+        return defaultConfig;
     }
 }

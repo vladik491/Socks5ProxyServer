@@ -20,21 +20,18 @@ public class ClientSessionHandler
     }
 
     /// <summary>
-    /// Обрабатывает полный жизненный цикл сессии клиента: согласование, авторизация,
-    /// проверка квот соединений, подключение к целевому хосту и пересылка трафика.
+    /// Обрабатывает сессию клиента с информативным событийным логированием.
     /// </summary>
     public async Task HandleSessionAsync(TcpClient client, CancellationToken cancellationToken = default)
     {
         using (client)
         await using (var clientStream = client.GetStream())
         {
-            // 1. Рукопожатие SOCKS5
             if (!await _handshake.NegotiateAuthMethodAsync(clientStream, cancellationToken))
             {
                 return;
             }
 
-            // 2. Аутентификация RFC 1929
             string? username = await _authenticator.AuthenticateAsync(
                 clientStream,
                 _configuration.ValidateCredentials,
@@ -42,37 +39,34 @@ public class ClientSessionHandler
 
             if (string.IsNullOrEmpty(username))
             {
+                LogEvent(ConsoleColor.Yellow, "AUTH_FAIL", "Попытка входа с неверным паролем или неизвестным логином.");
                 return;
             }
 
-            // 3. Проверка лимита одновременных подключений пользователя
+            LogEvent(ConsoleColor.Green, "AUTH", $"Пользователь '{username}' успешно авторизован.");
+
             if (!_tracker.TryAcquireConnection(username, _configuration.MaxConnectionsPerUser))
             {
-                await Socks5Request.SendReplyAsync(
-                    clientStream,
-                    Socks5Constants.ReplyConnectionNotAllowed,
-                    cancellationToken);
+                LogEvent(ConsoleColor.DarkYellow, "LIMIT", $"Превышен лимит подключений для '{username}' (максимум {_configuration.MaxConnectionsPerUser}).");
+                await Socks5Request.SendReplyAsync(clientStream, Socks5Constants.ReplyConnectionNotAllowed, cancellationToken);
                 return;
             }
 
             var userStats = _tracker.GetOrCreateUserStats(username);
+            string targetDestination = "неизвестно";
 
             try
             {
-                // 4. Разбор запроса CONNECT
                 var request = await Socks5Request.ReadAsync(clientStream, cancellationToken);
                 if (request == null || request.Command != Socks5Constants.CommandConnect)
                 {
-                    await Socks5Request.SendReplyAsync(
-                        clientStream,
-                        Socks5Constants.ReplyCommandNotSupported,
-                        cancellationToken);
+                    await Socks5Request.SendReplyAsync(clientStream, Socks5Constants.ReplyCommandNotSupported, cancellationToken);
                     return;
                 }
 
-                userStats.RecordDestination($"{request.TargetHost}:{request.TargetPort}");
+                targetDestination = $"{request.TargetHost}:{request.TargetPort}";
+                userStats.RecordDestination(targetDestination);
 
-                // 5. Установка исходящего TCP-соединения с целевым сайтом/сервером
                 using var targetClient = new TcpClient();
                 try
                 {
@@ -80,28 +74,37 @@ public class ClientSessionHandler
                 }
                 catch (SocketException)
                 {
-                    await Socks5Request.SendReplyAsync(
-                        clientStream,
-                        Socks5Constants.ReplyHostUnreachable,
-                        cancellationToken);
+                    LogEvent(ConsoleColor.Red, "ERROR", $"Целевой узел {targetDestination} недоступен для '{username}'.");
+                    await Socks5Request.SendReplyAsync(clientStream, Socks5Constants.ReplyHostUnreachable, cancellationToken);
                     return;
                 }
 
                 await using var targetStream = targetClient.GetStream();
 
-                // 6. Успешный ответ клиенту о готовности туннеля
-                await Socks5Request.SendReplyAsync(
-                    clientStream,
-                    Socks5Constants.ReplySuccess,
-                    cancellationToken);
+                await Socks5Request.SendReplyAsync(clientStream, Socks5Constants.ReplySuccess, cancellationToken);
 
-                // 7. Запуск двунаправленной пересылки данных
+                LogEvent(ConsoleColor.Cyan, "CONNECT", $"{username} -> {targetDestination} (активных сессий: {userStats.ActiveConnections})");
+
                 await _relay.RelayAsync(clientStream, targetStream, userStats, cancellationToken);
             }
             finally
             {
                 _tracker.ReleaseConnection(username);
+                LogEvent(ConsoleColor.DarkGray, "CLOSE", $"{username} завершил сессию к {targetDestination}. Всего передано: {userStats.TotalBytes / 1024.0:F2} КБ");
             }
+        }
+    }
+
+    private static void LogEvent(ConsoleColor color, string tag, string message)
+    {
+        lock (Console.Out)
+        {
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.Write($"[{DateTime.Now:HH:mm:ss}] ");
+            Console.ForegroundColor = color;
+            Console.Write($"[{tag,-9}] ");
+            Console.ResetColor();
+            Console.WriteLine(message);
         }
     }
 }

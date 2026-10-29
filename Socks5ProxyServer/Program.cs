@@ -7,18 +7,10 @@ internal class Program
 {
     private static async Task Main(string[] args)
     {
-        Console.Title = "SOCKS5 Proxy Server with Accounting";
+        Console.Title = "SOCKS5 Proxy Server";
 
-        var configuration = new ServerConfiguration
-        {
-            Port = 1080,
-            MaxConnectionsPerUser = 3
-        };
-
-        // Регистрация разрешенных пользователей (RFC 1929)
-        configuration.Users["alice"] = "secret123";
-        configuration.Users["bob"] = "pass456";
-
+        // Читаем пользователей и лимиты из users.json (или создаем файл автоматически)
+        var configuration = ServerConfiguration.LoadOrCreateDefault();
         var tracker = new TrafficTracker();
         var server = new Socks5Server(configuration, tracker);
 
@@ -26,7 +18,7 @@ internal class Program
         Console.CancelKeyPress += (sender, eventArgs) =>
         {
             eventArgs.Cancel = true;
-            Console.WriteLine("\n[SERVER] Завершение работы по сигналу Ctrl+C...");
+            Console.WriteLine("\n[SERVER] Завершение работы сервера...");
             cts.Cancel();
         };
 
@@ -36,7 +28,7 @@ internal class Program
         }
         catch (OperationCanceledException)
         {
-            // Ожидаемое завершение работы сервера
+            // Корректный выход
         }
         finally
         {

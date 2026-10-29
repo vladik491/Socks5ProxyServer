@@ -19,8 +19,7 @@ public class Socks5Server
     }
 
     /// <summary>
-    /// Запускает TCP-слушатель прокси-сервера и фоновый вывод статистики.
-    /// Обрабатывает клиентов параллельно в асинхронном цикле.
+    /// Запускает TCP-слушатель сервера и принимает подключения в неблокирующем асинхронном режиме.
     /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
@@ -28,11 +27,12 @@ public class Socks5Server
         _listener.Start();
 
         Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine($"[SERVER] SOCKS5-прокси сервер запущен на порту {_configuration.Port}");
-        Console.WriteLine($"[SERVER] Лимит подключений на пользователя: {_configuration.MaxConnectionsPerUser}");
+        Console.WriteLine($"[SERVER] SOCKS5-прокси запущен на порту {_configuration.Port}");
         Console.ResetColor();
 
-        _ = Task.Run(() => DisplayStatisticsLoopAsync(cancellationToken), cancellationToken);
+        Console.WriteLine($"[CONFIG] Загружено пользователей: {_configuration.Users.Count} ({string.Join(", ", _configuration.Users.Keys)})");
+        Console.WriteLine($"[CONFIG] Лимит одновременных подключений: {_configuration.MaxConnectionsPerUser}");
+        Console.WriteLine($"[STATUS] Сервер готов к приему трафика. Нажмите Ctrl+C для выхода.\n");
 
         while (!cancellationToken.IsCancellationRequested)
         {
@@ -48,7 +48,7 @@ public class Socks5Server
             catch (Exception ex)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[ERROR] Ошибка при приеме соединения: {ex.Message}");
+                Console.WriteLine($"[ERROR] Ошибка входящего сокета: {ex.Message}");
                 Console.ResetColor();
             }
         }
@@ -57,41 +57,26 @@ public class Socks5Server
     public void Stop()
     {
         _listener?.Stop();
+        PrintFinalSummary();
     }
 
-    private async Task DisplayStatisticsLoopAsync(CancellationToken cancellationToken)
+    private void PrintFinalSummary()
     {
-        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
-
-        while (!cancellationToken.IsCancellationRequested && await timer.WaitForNextTickAsync(cancellationToken))
+        var stats = _tracker.GetAllStats();
+        if (stats.Count == 0)
         {
-            var allStats = _tracker.GetAllStats();
-            if (allStats.Count == 0)
-            {
-                continue;
-            }
+            return;
+        }
 
-            Console.WriteLine(new string('-', 85));
-            Console.WriteLine($"{"ПОЛЬЗОВАТЕЛЬ",-15} | {"СЕССИИ",-8} | {"ПРИНЯТО (КБ)",-14} | {"ОТПРАВЛЕНО (КБ)",-16} | {"ПОСЕЩЕННЫЕ ХОСТЫ"}");
-            Console.WriteLine(new string('-', 85));
+        Console.ForegroundColor = ConsoleColor.White;
+        Console.WriteLine("\n[ИТОГОВАЯ СТАТИСТИКА СЕССИИ]");
+        Console.ResetColor();
 
-            foreach (var stat in allStats)
-            {
-                string hosts = string.Join(", ", stat.VisitedDestinations.Keys.Take(3));
-                if (stat.VisitedDestinations.Count > 3)
-                {
-                    hosts += $" (+{stat.VisitedDestinations.Count - 3})";
-                }
-
-                Console.WriteLine(
-                    $"{stat.Username,-15} | " +
-                    $"{stat.ActiveConnections,-8} | " +
-                    $"{stat.BytesReceived / 1024.0,-14:F2} | " +
-                    $"{stat.BytesSent / 1024.0,-16:F2} | " +
-                    $"{hosts}");
-            }
-
-            Console.WriteLine(new string('-', 85));
+        foreach (var user in stats)
+        {
+            Console.WriteLine($"* Пользователь '{user.Username}':");
+            Console.WriteLine($"    Принято: {user.BytesReceived / 1024.0:F2} КБ | Отправлено: {user.BytesSent / 1024.0:F2} КБ | Всего: {user.TotalBytes / 1024.0:F2} КБ");
+            Console.WriteLine($"    Посещенные адреса: {(user.VisitedDestinations.IsEmpty ? "нет" : string.Join(", ", user.VisitedDestinations.Keys))}");
         }
     }
 }
