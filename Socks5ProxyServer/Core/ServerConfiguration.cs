@@ -37,6 +37,8 @@ public class ServerConfiguration
         var defaultConfig = new ServerConfiguration();
         defaultConfig.Users["alice"] = "secret123";
         defaultConfig.Users["bob"] = "pass456";
+        defaultConfig.Users["charlie"] = "qwerty789";
+        defaultConfig.Users["admin"] = "admin2026";
 
         string defaultJson = JsonSerializer.Serialize(defaultConfig, new JsonSerializerOptions
         {
