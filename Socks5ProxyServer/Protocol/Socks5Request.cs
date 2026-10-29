@@ -11,18 +11,21 @@ public class Socks5Request
     public byte AddressType { get; }
     public string TargetHost { get; }
     public int TargetPort { get; }
+    public byte ErrorCode { get; }
 
-    public Socks5Request(byte command, byte addressType, string targetHost, int targetPort)
+    public bool IsValid => ErrorCode == Socks5Constants.ReplySuccess;
+
+    private Socks5Request(byte command, byte addressType, string targetHost, int targetPort, byte errorCode)
     {
         Command = command;
         AddressType = addressType;
         TargetHost = targetHost;
         TargetPort = targetPort;
+        ErrorCode = errorCode;
     }
 
     /// <summary>
-    /// Считывает и парсит бинарный пакет запроса SOCKS5 (RFC 1928, раздел 4).
-    /// Поддерживает адресацию IPv4 и FQDN (доменные имена).
+    /// Считывает запрос SOCKS5 и выполняет валидацию команды и типа адреса по RFC 1928.
     /// </summary>
     public static async Task<Socks5Request?> ReadAsync(NetworkStream stream, CancellationToken cancellationToken = default)
     {
@@ -38,6 +41,11 @@ public class Socks5Request
             return null;
         }
 
+        if (command != Socks5Constants.CommandConnect)
+        {
+            return new Socks5Request(command, addressType, string.Empty, 0, Socks5Constants.ReplyCommandNotSupported);
+        }
+
         string targetHost;
 
         switch (addressType)
@@ -49,40 +57,34 @@ public class Socks5Request
                 break;
 
             case Socks5Constants.AddressTypeDomain:
-                byte[] domainLengthBuffer = new byte[1];
-                await stream.ReadExactlyAsync(domainLengthBuffer, cancellationToken);
-                int domainLength = domainLengthBuffer[0];
-
-                byte[] domainBuffer = new byte[domainLength];
+                byte[] domainLenBuffer = new byte[1];
+                await stream.ReadExactlyAsync(domainLenBuffer, cancellationToken);
+                byte[] domainBuffer = new byte[domainLenBuffer[0]];
                 await stream.ReadExactlyAsync(domainBuffer, cancellationToken);
                 targetHost = Encoding.ASCII.GetString(domainBuffer);
                 break;
 
+            case Socks5Constants.AddressTypeIPv6:
             default:
-                return null;
+                return new Socks5Request(command, addressType, string.Empty, 0, Socks5Constants.ReplyAddressTypeNotSupported);
         }
 
-        // Порт назначения передается 2 байтами в сетевом порядке (Big-Endian)
         byte[] portBuffer = new byte[2];
         await stream.ReadExactlyAsync(portBuffer, cancellationToken);
         int targetPort = BinaryPrimitives.ReadUInt16BigEndian(portBuffer);
 
-        return new Socks5Request(command, addressType, targetHost, targetPort);
+        return new Socks5Request(command, addressType, targetHost, targetPort, Socks5Constants.ReplySuccess);
     }
 
-    /// <summary>
-    /// Отправляет клиенту бинарный ответ о статусе подключения к целевому узлу.
-    /// </summary>
     public static async Task SendReplyAsync(
         NetworkStream stream,
         byte replyCode,
         CancellationToken cancellationToken = default)
     {
-        // 0x01 означает фиктивный IPv4 0.0.0.0:0 в качестве BND.ADDR по стандарту RFC
         byte[] response = [
             Socks5Constants.Version5,
             replyCode,
-            0x00, // Зарезервированный байт (RSV)
+            0x00,
             Socks5Constants.AddressTypeIPv4,
             0x00, 0x00, 0x00, 0x00,
             0x00, 0x00

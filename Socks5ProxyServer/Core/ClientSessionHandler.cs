@@ -20,10 +20,12 @@ public class ClientSessionHandler
     }
 
     /// <summary>
-    /// Обрабатывает сессию клиента с информативным событийным логированием.
+    /// Обрабатывает сессию клиента в строгом соответствии с RFC 1928 / RFC 1929.
     /// </summary>
     public async Task HandleSessionAsync(TcpClient client, CancellationToken cancellationToken = default)
     {
+        client.NoDelay = true;
+
         using (client)
         await using (var clientStream = client.GetStream())
         {
@@ -58,9 +60,14 @@ public class ClientSessionHandler
             try
             {
                 var request = await Socks5Request.ReadAsync(clientStream, cancellationToken);
-                if (request == null || request.Command != Socks5Constants.CommandConnect)
+                if (request == null)
                 {
-                    await Socks5Request.SendReplyAsync(clientStream, Socks5Constants.ReplyCommandNotSupported, cancellationToken);
+                    return;
+                }
+
+                if (!request.IsValid)
+                {
+                    await Socks5Request.SendReplyAsync(clientStream, request.ErrorCode, cancellationToken);
                     return;
                 }
 
@@ -68,14 +75,23 @@ public class ClientSessionHandler
                 userStats.RecordDestination(targetDestination);
 
                 using var targetClient = new TcpClient();
+                targetClient.NoDelay = true;
+
                 try
                 {
                     await targetClient.ConnectAsync(request.TargetHost, request.TargetPort, cancellationToken);
                 }
-                catch (SocketException)
+                catch (SocketException ex)
                 {
-                    LogEvent(ConsoleColor.Red, "ERROR", $"Целевой узел {targetDestination} недоступен для '{username}'.");
-                    await Socks5Request.SendReplyAsync(clientStream, Socks5Constants.ReplyHostUnreachable, cancellationToken);
+                    byte replyStatus = ex.SocketErrorCode switch
+                    {
+                        SocketError.ConnectionRefused => Socks5Constants.ReplyConnectionRefused,
+                        SocketError.NetworkUnreachable => Socks5Constants.ReplyNetworkUnreachable,
+                        _ => Socks5Constants.ReplyHostUnreachable
+                    };
+
+                    LogEvent(ConsoleColor.Red, "ERROR", $"Не удалось подключиться к {targetDestination}: {ex.SocketErrorCode}");
+                    await Socks5Request.SendReplyAsync(clientStream, replyStatus, cancellationToken);
                     return;
                 }
 

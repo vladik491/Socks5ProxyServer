@@ -62,7 +62,7 @@ public class UserStats
 
     public void RecordDestination(string destination)
     {
-        if (!string.IsNullOrWhiteSpace(destination))
+        if (!string.IsNullOrWhiteSpace(destination) && VisitedDestinations.Count < 1000)
         {
             VisitedDestinations.TryAdd(destination, 0);
         }
