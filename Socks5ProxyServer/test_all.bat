@@ -8,7 +8,7 @@ echo.
 pause
 
 echo [2/4] Проверка пользователя 'bob'...
-curl -s -o nul -w "Статус ответа сайта: %%{http_code} OK (трафик успешно прошел через прокси)" -x socks5://bob:pass456@127.0.0.1:1080 http://example.com
+curl -s -o nul -w "HTTP Response: %%{http_code} OK (traffic routed via SOCKS5)" -x socks5://bob:pass456@127.0.0.1:1080 http://example.com
 echo.
 echo.
 pause
