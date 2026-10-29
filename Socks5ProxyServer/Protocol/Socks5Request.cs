@@ -5,6 +5,10 @@ using System.Text;
 
 namespace Socks5ProxyServer.Protocol;
 
+// Модуль протокола SOCKS5 (RFC 1928).
+// Выполняет разбор запроса на соединение (команда CONNECT), декодирует целевые адреса (IPv4 и FQDN),
+// считывает 16-битный сетевой порт (Big-Endian) и формирует бинарные ответы сервера клиенту.
+
 public class Socks5Request
 {
     public byte Command { get; }
@@ -24,9 +28,7 @@ public class Socks5Request
         ErrorCode = errorCode;
     }
 
-    /// <summary>
-    /// Считывает запрос SOCKS5 и выполняет валидацию команды и типа адреса по RFC 1928.
-    /// </summary>
+
     public static async Task<Socks5Request?> ReadAsync(Stream stream, CancellationToken cancellationToken = default)
     {
         byte[] header = new byte[4];

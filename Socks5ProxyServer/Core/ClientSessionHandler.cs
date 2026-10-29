@@ -5,6 +5,10 @@ using Socks5ProxyServer.Stats;
 
 namespace Socks5ProxyServer.Core;
 
+// Модуль ядра сервера.
+// Главный конвейер обработки клиентской сессии: координирует рукопожатие, аутентификацию,
+// проверку лимитов сессий, установку соединения с целевым узлом, событийное логирование и ретрансляцию.
+
 public class ClientSessionHandler
 {
     private readonly ServerConfiguration _configuration;
@@ -19,9 +23,6 @@ public class ClientSessionHandler
         _tracker = tracker;
     }
 
-    /// <summary>
-    /// Обрабатывает сессию клиента в строгом соответствии с RFC 1928 / RFC 1929.
-    /// </summary>
     public async Task HandleSessionAsync(TcpClient client, CancellationToken cancellationToken = default)
     {
         client.NoDelay = true;

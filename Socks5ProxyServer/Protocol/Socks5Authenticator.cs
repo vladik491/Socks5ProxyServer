@@ -3,12 +3,12 @@ using System.Text;
 
 namespace Socks5ProxyServer.Protocol;
 
+// Модуль протокола SOCKS5 (RFC 1929).
+// Выполняет бинарный разбор подпереговоров аутентификации (логин и пароль),
+// сверяет данные с зарегистрированными учетными записями и возвращает статус доступа (0x00 / 0x01).
+
 public class Socks5Authenticator
 {
-    /// <summary>
-    /// Выполняет аутентификацию клиента по логину и паролю в соответствии с RFC 1929.
-    /// Возвращает имя пользователя при успешной авторизации или null при ошибке.
-    /// </summary>
     public async Task<string?> AuthenticateAsync(Stream stream, Func<string, string, bool> validateCredentials, CancellationToken cancellationToken = default)
     {
         byte[] versionBuffer = new byte[1];

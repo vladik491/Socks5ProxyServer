@@ -3,6 +3,10 @@ using Socks5ProxyServer.Stats;
 
 namespace Socks5ProxyServer;
 
+// Точка входа в приложение (Main).
+// Выполняет инициализацию конфигурации, служб учета трафика, запуск SOCKS5-прокси сервера
+// и перехват сигнала прерывания работы Console.CancelKeyPress.
+
 internal class Program
 {
     private static async Task Main(string[] args)

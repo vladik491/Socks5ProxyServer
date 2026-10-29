@@ -4,6 +4,10 @@ using Socks5ProxyServer.Stats;
 
 namespace Socks5ProxyServer.Core;
 
+// Модуль ядра сервера.
+// Сетевой слушатель сокетов на базе TcpListener: принимает входящие клиентские подключения
+// в неблокирующем асинхронном цикле и обеспечивает корректную остановку (Graceful Shutdown) по Ctrl+C.
+
 public class Socks5Server
 {
     private readonly ServerConfiguration _configuration;
@@ -18,9 +22,6 @@ public class Socks5Server
         _sessionHandler = new ClientSessionHandler(configuration, tracker);
     }
 
-    /// <summary>
-    /// Запускает TCP-слушатель сервера и принимает подключения в неблокирующем асинхронном режиме.
-    /// </summary>
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         _listener = new TcpListener(IPAddress.Any, _configuration.Port);

@@ -2,12 +2,12 @@
 
 namespace Socks5ProxyServer.Protocol;
 
+// Модуль протокола SOCKS5 (RFC 1928).
+// Реализует процедуру начального рукопожатия: считывает поддерживаемые клиентом методы
+// и подтверждает обязательное требование аутентификации по логину и паролю (метод 0x02).
+
 public class Socks5Handshake
 {
-    /// <summary>
-    /// Выполняет первичное согласование по RFC 1928: проверяет версию SOCKS5 
-    /// и подтверждает использование обязательной аутентификации 0x02 (Username/Password).
-    /// </summary>
     public async Task<bool> NegotiateAuthMethodAsync(Stream stream, CancellationToken cancellationToken = default)
     {
         byte[] header = new byte[2];

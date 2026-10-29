@@ -3,14 +3,14 @@ using Socks5ProxyServer.Stats;
 
 namespace Socks5ProxyServer.Relay;
 
+// Модуль ретрансляции трафика.
+// Организует асинхронную двунаправленную пересылку сетевых потоков между клиентом и целевым узлом.
+// Использует пул буферов ArrayPool<byte> для Zero-Allocation передачи и параллельно ведет подсчет байт.
+
 public class StreamRelay
 {
     private const int BufferSize = 16384;
 
-    /// <summary>
-    /// Организует асинхронную двунаправленную пересылку трафика между клиентом и целевым узлом
-    /// с одновременным потокобезопасным подсчетом переданных и принятых байт.
-    /// </summary>
     public async Task RelayAsync(
         Stream clientStream,
         Stream targetStream,

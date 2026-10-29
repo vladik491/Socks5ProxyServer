@@ -2,6 +2,10 @@
 
 namespace Socks5ProxyServer.Stats;
 
+// Модуль статистики и мониторинга.
+// Менеджер пользовательских сессий: обеспечивает потокобезопасный доступ к статистике
+// и реализует Lock-Free контроль лимита одновременных подключений на пользователя через CAS-цикл.
+
 public class TrafficTracker
 {
     private readonly ConcurrentDictionary<string, UserStats> _userStatistics =

@@ -2,6 +2,10 @@
 
 namespace Socks5ProxyServer.Core;
 
+// Модуль ядра сервера.
+// Управляет параметрами сервера (порт, лимит подключений) и хранилищем учетных записей.
+// Обеспечивает персистентное сохранение и загрузку настроек из конфигурационного файла users.json.
+
 public class ServerConfiguration
 {
     private const string DefaultConfigPath = "users.json";
@@ -15,9 +19,6 @@ public class ServerConfiguration
         return Users.TryGetValue(username, out var expectedPassword) && expectedPassword == password;
     }
 
-    /// <summary>
-    /// Загружает настройки из файла users.json или создает файл по умолчанию, если он отсутствует.
-    /// </summary>
     public static ServerConfiguration LoadOrCreateDefault(string filePath = DefaultConfigPath)
     {
         if (File.Exists(filePath))
