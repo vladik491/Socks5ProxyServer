@@ -8,7 +8,7 @@ public class Socks5Handshake
     /// Выполняет первичное согласование по RFC 1928: проверяет версию SOCKS5 
     /// и подтверждает использование обязательной аутентификации 0x02 (Username/Password).
     /// </summary>
-    public async Task<bool> NegotiateAuthMethodAsync(NetworkStream stream, CancellationToken cancellationToken = default)
+    public async Task<bool> NegotiateAuthMethodAsync(Stream stream, CancellationToken cancellationToken = default)
     {
         byte[] header = new byte[2];
         await stream.ReadExactlyAsync(header, cancellationToken);

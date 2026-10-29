@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35919.96 d17.13
+VisualStudioVersion = 17.13.35919.96
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Socks5ProxyServer", "Socks5ProxyServer\Socks5ProxyServer.csproj", "{0ECF9036-6BE0-4ECC-B899-A5235307734D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Socks5ProxyServer.Tests", "Socks5ProxyServer.Tests\Socks5ProxyServer.Tests.csproj", "{8A402F9E-18F4-4029-A827-193251D0334E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{0ECF9036-6BE0-4ECC-B899-A5235307734D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0ECF9036-6BE0-4ECC-B899-A5235307734D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0ECF9036-6BE0-4ECC-B899-A5235307734D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8A402F9E-18F4-4029-A827-193251D0334E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8A402F9E-18F4-4029-A827-193251D0334E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8A402F9E-18F4-4029-A827-193251D0334E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8A402F9E-18F4-4029-A827-193251D0334E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

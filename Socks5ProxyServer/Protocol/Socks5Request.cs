@@ -27,7 +27,7 @@ public class Socks5Request
     /// <summary>
     /// Считывает запрос SOCKS5 и выполняет валидацию команды и типа адреса по RFC 1928.
     /// </summary>
-    public static async Task<Socks5Request?> ReadAsync(NetworkStream stream, CancellationToken cancellationToken = default)
+    public static async Task<Socks5Request?> ReadAsync(Stream stream, CancellationToken cancellationToken = default)
     {
         byte[] header = new byte[4];
         await stream.ReadExactlyAsync(header, cancellationToken);
@@ -76,10 +76,7 @@ public class Socks5Request
         return new Socks5Request(command, addressType, targetHost, targetPort, Socks5Constants.ReplySuccess);
     }
 
-    public static async Task SendReplyAsync(
-        NetworkStream stream,
-        byte replyCode,
-        CancellationToken cancellationToken = default)
+    public static async Task SendReplyAsync(Stream stream, byte replyCode, CancellationToken cancellationToken = default)
     {
         byte[] response = [
             Socks5Constants.Version5,

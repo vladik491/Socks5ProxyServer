@@ -9,10 +9,7 @@ public class Socks5Authenticator
     /// Выполняет аутентификацию клиента по логину и паролю в соответствии с RFC 1929.
     /// Возвращает имя пользователя при успешной авторизации или null при ошибке.
     /// </summary>
-    public async Task<string?> AuthenticateAsync(
-        NetworkStream stream,
-        Func<string, string, bool> validateCredentials,
-        CancellationToken cancellationToken = default)
+    public async Task<string?> AuthenticateAsync(Stream stream, Func<string, string, bool> validateCredentials, CancellationToken cancellationToken = default)
     {
         byte[] versionBuffer = new byte[1];
         await stream.ReadExactlyAsync(versionBuffer, cancellationToken);
